@@ -1,0 +1,33 @@
+##############################################################
+# Morphological substitution model for multistate characters #
+##############################################################
+
+# Setting up Gamma-distributed rate variation
+alpha_morpho ~ dnExponential( 1.0 )
+rates_morpho := fnDiscretizeGamma( alpha_morpho, alpha_morpho, 4 )
+
+# Setting up moves on the parameters to the Gamma distribution
+# this move will be applied with different tuning values (lambda and weight) to help improve mixing
+moves.append( mvScale(alpha_morpho, lambda=0.01, weight=5.0) )
+moves.append( mvScale(alpha_morpho, lambda=0.1,  weight=3.0) )
+moves.append( mvScale(alpha_morpho, lambda=1,    weight=1.0) )
+
+# Creating a Q-matrix for multistate characters, combining all parts into the phyloCTMC, and clamping each partition to its model
+n_max_states <- 6
+idx = 1
+morpho_bystate[1] <- morpho
+for (i in 2:n_max_states) {
+    morpho_bystate[i] <- morpho                                
+    morpho_bystate[i].setNumStatesPartition(i)                 
+    nc = morpho_bystate[i].nchar()                            
+
+    if (nc > 0) {                                              
+        q[idx] <- fnJC(i)                                      
+        m_morph[idx] ~ dnPhyloCTMC(tree=psi, Q=q[idx], nSites=nc, siteRates=rates_morpho, type="Standard", coding="variable")
+        
+	m_morph[idx].clamp(morpho_bystate[i])                  
+
+        idx = idx + 1                                     
+        idx
+    }
+}

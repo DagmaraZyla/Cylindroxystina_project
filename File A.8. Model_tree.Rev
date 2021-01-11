@@ -1,0 +1,42 @@
+##############
+# Tree model #
+##############
+
+# Setting up an outgroup taxon
+out_group = clade("Oxyporus")
+
+# Setting up a prior distribution on the tree topology
+topology ~ dnUniformTopology(taxa, outgroup=out_group)
+moves.append( mvNNI(topology, weight=n_branches/2.0) )
+moves.append( mvSPR(topology, weight=n_branches/5.0) )
+
+# Setting up a branch length hyperprior with a move
+branch_hypershape ~ dnExponential(1)
+moves.append(mvScale(branch_hypershape))
+
+# Setting up a branch length prior
+for (i in 1:n_branches) {
+    bl[i] ~ dnExponential(branch_hypershape)
+    moves.append(mvScale(bl[i]))
+}
+
+# Computing the tree length from the phylogeny
+TL := sum(bl)
+
+# Creating a phylogram
+psi := treeAssembly(topology, bl)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,119 @@
+################################################################################
+#
+# RevBayes Analysis: Combined phylogenetic analysis of morphological and molecular data
+# 
+# This file: Runs the full MCMC
+#
+# authors: Dagmara Żyła, Tracy A. Heath
+#
+# citation: Żyła et al., 2020.
+#
+################################################################################
+
+#######################
+# Reading in the Data #
+#######################
+
+# Importing the morphological character matrix (this file contains all taxa)
+morpho <- readDiscreteCharacterData("data/morpho_matrix.nex")
+
+# Importing the molecular sequences (the files contain all taxa) according to the partitioning
+
+# gene28s is read without partitioning by codon position (non-protein coding gene) and will be a separate partition
+gene28s <- readDiscreteCharacterData("data/28S.nex")
+
+geneArgK_1_and_2 <- readDiscreteCharacterData("data/ArgK.nex")
+geneArgK_1_and_2.setCodonPartition( v(1,2) )
+
+geneArgK_3 <- readDiscreteCharacterData("data/ArgK.nex")
+geneArgK_3.setCodonPartition( v(3) )
+
+geneCDA_1_and_2 <- readDiscreteCharacterData("data/CDA.nex")
+geneCDA_1_and_2.setCodonPartition( v(1,2) )
+
+geneCDA_3 <- readDiscreteCharacterData("data/CDA.nex")
+geneCDA_3.setCodonPartition( v(3) )
+
+geneCDC_1_and_2 <- readDiscreteCharacterData("data/CDC.nex")
+geneCDC_1_and_2.setCodonPartition( v(1,2) )
+
+geneCDC_3 <- readDiscreteCharacterData("data/CDC.nex")
+geneCDC_3.setCodonPartition( v(3) )
+
+geneCOI_1_and_2 <- readDiscreteCharacterData("data/COI.nex")
+geneCOI_1_and_2.setCodonPartition( v(1,2) )
+
+# we do not create COI_3 partition because we want to exclude it from the analysis
+
+geneTP_1_and_2 <- readDiscreteCharacterData("data/TP.nex")
+geneTP_1_and_2.setCodonPartition( v(1,2) )
+
+geneTP_3 <- readDiscreteCharacterData("data/TP.nex")
+geneTP_3.setCodonPartition( v(3) )
+
+geneWg <- readDiscreteCharacterData("data/Wg.nex")
+
+
+# Creating the full list of taxa
+taxa <- morpho.names()
+
+# Number of taxa
+num_taxa <- taxa.size()
+
+# Setting the number of branches (this is an unrooted analysis, so the number of branches is 2N-3, where N= number of taxa)
+n_branches <- 2 * num_taxa - 3 
+
+# Adding moves and monitors
+moves = VectorMoves()
+monitors = VectorMonitors()
+
+# Loading the model files
+source("Model_tree.Rev") # tree model
+source("Model_molecules.Rev") # molecular substitution model (GTR+G+I)
+source("Model_morpho.Rev") # morphological character change model
+
+########
+# MCMC #
+########
+
+# Initialising the model object
+my_model =  model(topology)
+
+# Adding monitors
+
+# for the full model
+monitors.append( mnModel(filename="output/paederine.log",printgen=10))
+# for the tree
+monitors.append( mnFile(psi, filename="output/paederine.trees", printgen=100))
+# for the tree length
+monitors.append( mnScreen(TL, printgen=100))
+
+# Running the analysis
+mymcmc = mcmc(my_model, monitors, moves, nruns=1, combine="mixed")
+
+mymcmc.burnin(generations=1000,tuningInterval=500) # to add burnin function
+
+mymcmc.run(2000000, underPrior=false)
+
+# Summarizing the output
+trace = readTreeTrace("output/paederine.trees", treetype="non-clock") 
+
+consensusTree(trace, cutoff=0.5, file="paederine_consensus.tree")
+
+# Quitting RevBayes
+q()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
